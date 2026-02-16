@@ -39,15 +39,21 @@ export function MapDashboard() {
       .importLibrary('maps')
       .then(() => {
         if (!mapRef.current) return;
+
+        const isMobile =
+          typeof window !== 'undefined'
+            ? window.matchMedia('(max-width: 640px)').matches
+            : false;
+
         const map = new google.maps.Map(mapRef.current, {
           center: RAJSHAHI_CENTER,
-          zoom: 13,
+          zoom: isMobile ? 11 : 13,
           mapId: 'astha-feeds-dashboard',
-          disableDefaultUI: false,
+          disableDefaultUI: isMobile,
           zoomControl: true,
-          mapTypeControl: true,
-          streetViewControl: false,
-          fullscreenControl: true,
+          mapTypeControl: !isMobile,
+          streetViewControl: !isMobile,
+          fullscreenControl: !isMobile,
           styles: [
             { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
           ],
@@ -283,7 +289,7 @@ export function MapDashboard() {
   }, [geofences, mapLoaded]);
 
   return (
-    <div className="relative w-full h-full" style={{ minHeight: '400px' }}>
+    <div className="relative w-full h-full min-h-[280px] md:min-h-[400px]">
       <div ref={mapRef} className="w-full h-full absolute inset-0" />
 
       {/* Map Legend */}

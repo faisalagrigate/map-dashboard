@@ -76,7 +76,59 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Mobile layout: map on top, tabs + activity below */}
+      <div className="flex-1 flex flex-col md:hidden overflow-hidden">
+        <div className="flex-none h-[340px] border-b border-border">
+          <MapDashboard />
+        </div>
+        <div className="flex-1 flex flex-col overflow-y-auto bg-card">
+          <div className="border-b border-border">
+            <Tabs
+              value={sidebarTab}
+              onValueChange={setSidebarTab}
+              className="flex flex-col h-full"
+            >
+              <TabsList className="grid w-full grid-cols-4 rounded-none border-b border-border h-9 bg-muted/30">
+                <TabsTrigger value="agents" className="text-xs px-1 data-[state=active]:bg-card">
+                  <MapPin className="h-3.5 w-3.5" />
+                </TabsTrigger>
+                <TabsTrigger value="kpis" className="text-xs px-1 data-[state=active]:bg-card">
+                  <BarChart3 className="h-3.5 w-3.5" />
+                </TabsTrigger>
+                <TabsTrigger value="targets" className="text-xs px-1 data-[state=active]:bg-card">
+                  <Target className="h-3.5 w-3.5" />
+                </TabsTrigger>
+                <TabsTrigger value="geo" className="text-xs px-1 data-[state=active]:bg-card">
+                  <Globe className="h-3.5 w-3.5" />
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="agents" className="mt-0">
+                <AgentList />
+              </TabsContent>
+
+              <TabsContent value="kpis" className="mt-0">
+                <KPIPanel />
+              </TabsContent>
+
+              <TabsContent value="targets" className="mt-0">
+                <TargetDashboard />
+              </TabsContent>
+
+              <TabsContent value="geo" className="mt-0 p-3">
+                <GeoFilter />
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          <div className="flex-1 overflow-y-auto border-t border-border">
+            <ActivityPanel />
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop layout: sidebars + map in three columns */}
+      <div className="hidden md:flex flex-1 overflow-hidden">
         {/* Left Sidebar */}
         <div className="w-72 flex flex-col border-r border-border bg-card overflow-hidden">
           <Tabs value={sidebarTab} onValueChange={setSidebarTab} className="flex flex-col h-full">
