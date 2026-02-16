@@ -10,6 +10,7 @@ export function MapDashboard() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const agentMarkersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map());
+  const agentInfoWindowsRef = useRef<Map<string, google.maps.InfoWindow>>(new Map());
   const dealerMarkersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map());
   const competitionMarkersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map());
   const polylinesRef = useRef<Map<string, google.maps.Polyline>>(new Map());
@@ -23,7 +24,7 @@ export function MapDashboard() {
     if (!mapRef.current || mapInstanceRef.current) return;
 
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    console.log("Api",apiKey)
+    console.log("Api", apiKey)
     if (!apiKey) {
       setLoadError('Google Maps API key is not set.');
       return;
@@ -139,33 +140,128 @@ export function MapDashboard() {
     const map = mapInstanceRef.current;
     if (!map || !mapLoaded) return;
 
+    const renderMiniMap = (
+      info: google.maps.InfoWindow,
+      elementId: string,
+      segment: { from: { lat: number; lng: number }; to: { lat: number; lng: number } }
+    ) => {
+      info.addListener('domready', () => {
+        const container = document.getElementById(elementId);
+        if (!container) return;
+
+        const miniMap = new google.maps.Map(container, {
+          center: {
+            lat: (segment.from.lat + segment.to.lat) / 2,
+            lng: (segment.from.lng + segment.to.lng) / 2,
+          },
+          zoom: 16,
+          disableDefaultUI: true,
+          gestureHandling: 'none',
+        });
+
+        new google.maps.Polyline({
+          path: [
+            { lat: segment.from.lat, lng: segment.from.lng },
+            { lat: segment.to.lat, lng: segment.to.lng },
+          ],
+          map: miniMap,
+          geodesic: true,
+          strokeColor: '#f97316',
+          strokeOpacity: 0.9,
+          strokeWeight: 3,
+        });
+
+        new google.maps.Marker({
+          map: miniMap,
+          position: { lat: segment.from.lat, lng: segment.from.lng },
+        });
+        new google.maps.Marker({
+          map: miniMap,
+          position: { lat: segment.to.lat, lng: segment.to.lng },
+        });
+      });
+    };
+
     agents.forEach((agent) => {
       const id = `agent-${agent.id}`;
       const pos = { lat: agent.currentLocation.lat, lng: agent.currentLocation.lng };
 
+      const history = agent.locationHistory || [];
+      let movementHtml = '';
+      let lastSegment: { from: { lat: number; lng: number }; to: { lat: number; lng: number } } | null =
+        null;
+
+      if (history.length > 1) {
+        const from = history[history.length - 2];
+        const to = history[history.length - 1];
+        lastSegment = { from, to };
+        movementHtml = `
+          <div style="margin-top:8px;padding-top:6px;border-top:1px solid #e5e7eb;">
+            <div style="font-size:12px;font-weight:600;color:#111827;margin-bottom:8px;">
+              Last movement (point to point)
+            </div>
+            <div id="agent-mini-map-${id}" style="width:800px;height:390px;border-radius:10px;overflow:hidden;margin-bottom:8px;background:#e5e7eb;"></div>
+            <div style="font-size:12px;color:#4b5563;line-height:1.5;">
+              <strong>From:</strong> ${from.lat.toFixed(4)}, ${from.lng.toFixed(4)}<br/>
+              <strong>To:</strong> ${to.lat.toFixed(4)}, ${to.lng.toFixed(4)}
+            </div>
+          </div>
+        `;
+      }
+
       if (!agentMarkersRef.current.has(id)) {
         const marker = new google.maps.marker.AdvancedMarkerElement({
-          map, position: pos,
+          map,
+          position: pos,
           content: createAgentPin(agent.name, agent.status),
           title: agent.name,
           zIndex: 100,
         });
         const info = new google.maps.InfoWindow({
           content: `
-            <div style="padding:8px;font-size:12px;max-width:200px;">
+            <div style="padding:10px;font-size:12px;max-width:820px;">
               <div style="font-weight:700;font-size:13px;margin-bottom:4px;">${agent.name}</div>
               <div style="color:#666;margin-bottom:2px;">${agent.geoHierarchy.area}, ${agent.geoHierarchy.region}</div>
               <div style="color:#666;margin-bottom:2px;">Status: <strong>${agent.status}</strong></div>
-              <div style="color:#666;">Dealers: ${agent.assignedDealers.length} | Target: ${Math.round((agent.achievedMonthly / agent.targetMonthly) * 100)}%</div>
+              <div style="color:#666;">Dealers: ${agent.assignedDealers.length} | Target: ${Math.round(
+                (agent.achievedMonthly / agent.targetMonthly) * 100
+              )}%</div>
+              ${movementHtml}
             </div>
           `,
         });
+
+        if (lastSegment) {
+          renderMiniMap(info, `agent-mini-map-${id}`, lastSegment);
+        }
+
+        agentInfoWindowsRef.current.set(id, info);
+
         marker.addListener('click', () => info.open({ anchor: marker, map }));
         agentMarkersRef.current.set(id, marker);
       } else {
         const marker = agentMarkersRef.current.get(id)!;
         marker.position = pos;
         marker.content = createAgentPin(agent.name, agent.status);
+
+        const existingInfo = agentInfoWindowsRef.current.get(id);
+        if (existingInfo) {
+          existingInfo.setContent(`
+            <div style="padding:10px;font-size:12px;max-width:820px;">
+              <div style="font-weight:700;font-size:13px;margin-bottom:4px;">${agent.name}</div>
+              <div style="color:#666;margin-bottom:2px;">${agent.geoHierarchy.area}, ${agent.geoHierarchy.region}</div>
+              <div style="color:#666;margin-bottom:2px;">Status: <strong>${agent.status}</strong></div>
+              <div style="color:#666;">Dealers: ${agent.assignedDealers.length} | Target: ${Math.round(
+                (agent.achievedMonthly / agent.targetMonthly) * 100
+              )}%</div>
+              ${movementHtml}
+            </div>
+          `);
+
+          if (lastSegment) {
+            renderMiniMap(existingInfo, `agent-mini-map-${id}`, lastSegment);
+          }
+        }
       }
 
       // Polylines for trails
