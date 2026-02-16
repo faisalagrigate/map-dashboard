@@ -11,7 +11,7 @@ import { formatCurrency } from '@/lib/mock-data';
 import { formatDuration } from '@/lib/geofence-detector';
 
 export function AgentList() {
-  const { agents, dealers } = useLocation();
+  const { agents, dealers, setSelectedAgent } = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredAgents = agents.filter(
@@ -72,6 +72,7 @@ export function AgentList() {
               <div
                 key={agent.id}
                 className="p-3 border-b border-border hover:bg-muted/30 transition-colors cursor-pointer"
+                onClick={() => setSelectedAgent(agent.status === 'active' ? agent.id : undefined)}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">

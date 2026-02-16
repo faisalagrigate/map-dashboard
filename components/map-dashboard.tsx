@@ -3,20 +3,29 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from '@/context/location-context';
 import { Loader } from '@googlemaps/js-api-loader';
+declare const google: any;
 
-const RAJSHAHI_CENTER = { lat: 24.3745, lng: 88.6042 };
+const BANGLADESH_CENTER = { lat: 23.685, lng: 90.3563 };
+const BANGLADESH_BOUNDS = {
+  north: 26.65,
+  south: 20.75,
+  west: 88.0,
+  east: 92.7,
+};
 
 export function MapDashboard() {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const agentMarkersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map());
-  const dealerMarkersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map());
-  const competitionMarkersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map());
-  const polylinesRef = useRef<Map<string, google.maps.Polyline>>(new Map());
-  const geofenceCirclesRef = useRef<Map<string, { circle: google.maps.Circle; label: google.maps.marker.AdvancedMarkerElement }>>(new Map());
+  const mapInstanceRef = useRef<any>(null);
+  const agentMarkersRef = useRef<Map<string, any>>(new Map());
+  const dealerMarkersRef = useRef<Map<string, any>>(new Map());
+  const competitionMarkersRef = useRef<Map<string, any>>(new Map());
+  const polylinesRef = useRef<Map<string, any>>(new Map());
+  const geofenceCirclesRef = useRef<Map<string, { circle: any; label: any }>>(new Map());
   const [mapLoaded, setMapLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const { agents, dealers, competitionDealers, geofences, showCompetition } = useLocation();
+  const { agents, dealers, competitionDealers, geofences, showCompetition, selectedAgentId } = useLocation();
+  const directionsRendererRef = useRef<any>(null);
+  const infoWindowRef = useRef<any>(null);
 
   // Initialize Google Map
   useEffect(() => {
@@ -40,14 +49,15 @@ export function MapDashboard() {
       .then(() => {
         if (!mapRef.current) return;
         const map = new google.maps.Map(mapRef.current, {
-          center: RAJSHAHI_CENTER,
-          zoom: 13,
+          center: BANGLADESH_CENTER,
+          zoom: 7,
           mapId: 'astha-feeds-dashboard',
           disableDefaultUI: false,
           zoomControl: true,
           mapTypeControl: true,
           streetViewControl: false,
           fullscreenControl: true,
+          restriction: { latLngBounds: BANGLADESH_BOUNDS, strictBounds: true },
           styles: [
             { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
           ],
@@ -88,12 +98,20 @@ export function MapDashboard() {
     const el = document.createElement('div');
     el.style.cssText = `
       display:flex;align-items:center;justify-content:center;
-      width:30px;height:30px;border-radius:50%;
-      background:${bg};border:2.5px solid white;
+      width:34px;height:34px;border-radius:50%;
+      background:${status === 'active' ? 'transparent' : bg};border:2.5px solid white;
       box-shadow:0 2px 8px rgba(0,0,0,0.3);cursor:pointer;
-      transition:transform 0.2s;
+      transition:transform 0.2s;overflow:hidden;
     `;
-    el.innerHTML = `<span style="color:white;font-weight:700;font-size:11px;">${name.charAt(0)}</span>`;
+    if (status === 'active') {
+      const img = document.createElement('img');
+      img.src = '/astha.gif';
+      img.alt = 'Astha';
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      el.appendChild(img);
+    } else {
+      el.innerHTML = `<span style="color:white;font-weight:700;font-size:11px;">${name.charAt(0)}</span>`;
+    }
     el.onmouseenter = () => { el.style.transform = 'scale(1.2)'; };
     el.onmouseleave = () => { el.style.transform = 'scale(1)'; };
     return el;
@@ -155,6 +173,7 @@ export function MapDashboard() {
           `,
         });
         marker.addListener('click', () => info.open({ anchor: marker, map }));
+        if (!infoWindowRef.current) infoWindowRef.current = info;
         agentMarkersRef.current.set(id, marker);
       } else {
         const marker = agentMarkersRef.current.get(id)!;
@@ -281,6 +300,59 @@ export function MapDashboard() {
       }
     });
   }, [geofences, mapLoaded]);
+
+  // Focus selected agent and show route
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !mapLoaded || !selectedAgentId) return;
+    const agent = agents.find((a) => a.id === selectedAgentId);
+    if (!agent || agent.status !== 'active') return;
+    const marker = agentMarkersRef.current.get(`agent-${agent.id}`);
+    const origin = agent.locationHistory[0] || agent.currentLocation;
+    const destination = agent.currentLocation;
+
+    map.panTo({ lat: destination.lat, lng: destination.lng });
+    map.setZoom(11);
+
+    const directionsService = new google.maps.DirectionsService();
+    if (directionsRendererRef.current) {
+      directionsRendererRef.current.setMap(null);
+      directionsRendererRef.current = null;
+    }
+    const renderer = new google.maps.DirectionsRenderer({
+      map,
+      suppressMarkers: true,
+      polylineOptions: { strokeColor: '#10b981', strokeOpacity: 0.9, strokeWeight: 4 },
+    });
+    directionsRendererRef.current = renderer;
+    directionsService.route(
+      {
+        origin: { lat: origin.lat, lng: origin.lng },
+        destination: { lat: destination.lat, lng: destination.lng },
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result: any, status: any) => {
+        if (status === 'OK' && result) {
+          renderer.setDirections(result);
+          const content = `
+            <div style="padding:8px;font-size:12px;max-width:240px;">
+              <div style="font-weight:700;font-size:13px;margin-bottom:6px;">${agent.name}</div>
+              <div style="margin-bottom:4px;color:#374151;">
+                From: <strong>${origin.lat.toFixed(4)}, ${origin.lng.toFixed(4)}</strong>
+              </div>
+              <div style="color:#374151;">
+                To: <strong>${destination.lat.toFixed(4)}, ${destination.lng.toFixed(4)}</strong>
+              </div>
+            </div>
+          `;
+          const info = infoWindowRef.current || new google.maps.InfoWindow();
+          info.setContent(content);
+          infoWindowRef.current = info;
+          if (marker) info.open({ anchor: marker, map });
+        }
+      }
+    );
+  }, [selectedAgentId, agents, mapLoaded]);
 
   return (
     <div className="relative w-full h-full" style={{ minHeight: '400px' }}>

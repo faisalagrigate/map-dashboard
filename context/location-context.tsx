@@ -19,6 +19,7 @@ interface LocationContextType {
   activities: Activity[];
   selectedZone: string;
   showCompetition: boolean;
+  selectedAgentId?: string;
   // backward compat
   employees: Agent[];
   selectedSKUs: string[];
@@ -32,6 +33,7 @@ interface LocationContextType {
   getMetrics: () => { activeCount: number; totalCount: number; averageActiveTime: number };
   setSelectedZone: (zone: string) => void;
   toggleCompetition: () => void;
+  setSelectedAgent: (id?: string) => void;
 }
 
 const LocationContext = createContext<LocationContextType | undefined>(undefined);
@@ -46,7 +48,8 @@ type LocationAction =
   | { type: 'UPDATE_AGENT_STATUS'; payload: { id: string; status: 'active' | 'idle' | 'offline' } }
   | { type: 'UPDATE_GEOFENCE_EMPLOYEES'; payload: { geofenceId: string; employees: string[] } }
   | { type: 'SET_SELECTED_ZONE'; payload: string }
-  | { type: 'TOGGLE_COMPETITION' };
+  | { type: 'TOGGLE_COMPETITION' }
+  | { type: 'SET_SELECTED_AGENT'; payload?: string };
 
 interface LocationState {
   agents: Agent[];
@@ -59,6 +62,7 @@ interface LocationState {
   activities: Activity[];
   selectedZone: string;
   showCompetition: boolean;
+  selectedAgentId?: string;
 }
 
 const initialState: LocationState = {
@@ -72,6 +76,7 @@ const initialState: LocationState = {
   activities: [],
   selectedZone: 'all',
   showCompetition: false,
+  selectedAgentId: undefined,
 };
 
 function locationReducer(state: LocationState, action: LocationAction): LocationState {
@@ -123,6 +128,8 @@ function locationReducer(state: LocationState, action: LocationAction): Location
       return { ...state, selectedZone: action.payload };
     case 'TOGGLE_COMPETITION':
       return { ...state, showCompetition: !state.showCompetition };
+    case 'SET_SELECTED_AGENT':
+      return { ...state, selectedAgentId: action.payload };
     default:
       return state;
   }
@@ -232,6 +239,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     activities: state.activities,
     selectedZone: state.selectedZone,
     showCompetition: state.showCompetition,
+    selectedAgentId: state.selectedAgentId,
     // backward compat
     employees: state.agents,
     selectedSKUs: [],
@@ -252,6 +260,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     },
     setSelectedZone: (zone) => dispatch({ type: 'SET_SELECTED_ZONE', payload: zone }),
     toggleCompetition: () => dispatch({ type: 'TOGGLE_COMPETITION' }),
+    setSelectedAgent: (id) => dispatch({ type: 'SET_SELECTED_AGENT', payload: id }),
   };
 
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;
