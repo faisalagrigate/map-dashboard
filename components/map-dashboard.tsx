@@ -103,14 +103,27 @@ export function MapDashboard() {
       box-shadow:0 2px 8px rgba(0,0,0,0.3);cursor:pointer;
       transition:transform 0.2s;overflow:hidden;
     `;
+    const fallbackLetter = () => {
+      el.style.background = bg;
+      el.innerHTML = `<span style="color:white;font-weight:700;font-size:11px;">${name.charAt(0)}</span>`;
+    };
     if (status === 'active') {
+      const src = process.env.NEXT_PUBLIC_ASTA_GIF_URL || '/astha.gif';
       const img = document.createElement('img');
-      img.src = '/astha.gif';
+      img.src = src;
       img.alt = 'Astha';
       img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      img.onerror = () => fallbackLetter();
+      img.onload = () => {
+        // Keep transparent background when GIF loads
+        el.innerHTML = '';
+        el.appendChild(img);
+      };
+      // In case it never loads, show letter initially then replace on load
+      fallbackLetter();
       el.appendChild(img);
     } else {
-      el.innerHTML = `<span style="color:white;font-weight:700;font-size:11px;">${name.charAt(0)}</span>`;
+      fallbackLetter();
     }
     el.onmouseenter = () => { el.style.transform = 'scale(1.2)'; };
     el.onmouseleave = () => { el.style.transform = 'scale(1)'; };
