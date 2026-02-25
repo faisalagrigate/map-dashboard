@@ -87,15 +87,15 @@ function locationReducer(state: LocationState, action: LocationAction): Location
         agents: state.agents.map((agent) =>
           agent.id === action.payload.id
             ? {
-                ...agent,
-                currentLocation: { lat: action.payload.lat, lng: action.payload.lng, timestamp: Date.now() },
-                locationHistory: [
-                  ...agent.locationHistory.slice(-49),
-                  { lat: action.payload.lat, lng: action.payload.lng, timestamp: Date.now() },
-                ],
-                status: 'active' as const,
-                activeSince: agent.activeSince || Date.now(),
-              }
+              ...agent,
+              currentLocation: { lat: action.payload.lat, lng: action.payload.lng, timestamp: Date.now() },
+              locationHistory: [
+                ...agent.locationHistory.slice(-49),
+                { lat: action.payload.lat, lng: action.payload.lng, timestamp: Date.now() },
+              ],
+              status: 'active' as const,
+              activeSince: agent.activeSince || Date.now(),
+            }
             : agent
         ),
       };
@@ -246,7 +246,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     updateEmployeeLocation: (id, lat, lng) => dispatch({ type: 'UPDATE_AGENT_LOCATION', payload: { id, lat, lng } }),
     updateGeofences: (geofences) => dispatch({ type: 'SET_GEOFENCES', payload: geofences }),
     addGeofence: (geofence) => dispatch({ type: 'ADD_GEOFENCE', payload: geofence }),
-    toggleSKUFilter: () => {},
+    toggleSKUFilter: () => { },
     clearAlerts: () => dispatch({ type: 'CLEAR_ALERTS' }),
     getActiveEmployees: () => state.agents.filter((a) => a.status === 'active'),
     getFilteredEmployees: () => state.agents,

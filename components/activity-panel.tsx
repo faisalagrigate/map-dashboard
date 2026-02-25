@@ -94,8 +94,8 @@ export function ActivityPanel() {
                         <p className="font-semibold text-foreground truncate">{agent?.name}</p>
                         <p className="text-muted-foreground mt-0.5">
                           {activity.type === 'entry' ? `Entered ${geo?.name}` :
-                           activity.type === 'exit' ? `Left ${geo?.name}` :
-                           activity.description || 'Activity update'}
+                            activity.type === 'exit' ? `Left ${geo?.name}` :
+                              activity.description || 'Activity update'}
                         </p>
                       </div>
                       <span className="text-muted-foreground whitespace-nowrap text-xs">
@@ -124,15 +124,14 @@ export function ActivityPanel() {
                     <p className="text-xs font-semibold text-foreground">{order.product}</p>
                     <Badge
                       variant="outline"
-                      className={`text-xs px-1 py-0 ${
-                        order.status === 'delivered'
+                      className={`text-xs px-1 py-0 ${order.status === 'delivered'
                           ? 'text-emerald-600 border-emerald-200'
                           : order.status === 'confirmed'
-                          ? 'text-blue-600 border-blue-200'
-                          : order.status === 'pending'
-                          ? 'text-amber-600 border-amber-200'
-                          : 'text-destructive border-destructive/20'
-                      }`}
+                            ? 'text-blue-600 border-blue-200'
+                            : order.status === 'pending'
+                              ? 'text-amber-600 border-amber-200'
+                              : 'text-destructive border-destructive/20'
+                        }`}
                     >
                       {order.status}
                     </Badge>
@@ -172,13 +171,12 @@ export function ActivityPanel() {
                 {alerts.map((alert) => (
                   <div
                     key={alert.id}
-                    className={`p-2.5 rounded-md border text-xs ${
-                      alert.type === 'geofence_entry'
+                    className={`p-2.5 rounded-md border text-xs ${alert.type === 'geofence_entry'
                         ? 'bg-emerald-50 border-emerald-100'
                         : alert.type === 'geofence_exit'
-                        ? 'bg-red-50 border-red-100'
-                        : 'bg-amber-50 border-amber-100'
-                    }`}
+                          ? 'bg-red-50 border-red-100'
+                          : 'bg-amber-50 border-amber-100'
+                      }`}
                   >
                     <div className="flex items-start gap-2">
                       {alert.type === 'geofence_entry' ? (
@@ -190,8 +188,8 @@ export function ActivityPanel() {
                         <p className="font-semibold text-foreground">{alert.employeeName}</p>
                         <p className="text-muted-foreground">
                           {alert.type === 'geofence_entry' ? `Entered ${alert.geofenceName}` :
-                           alert.type === 'geofence_exit' ? `Left ${alert.geofenceName}` :
-                           alert.message || 'Alert'}
+                            alert.type === 'geofence_exit' ? `Left ${alert.geofenceName}` :
+                              alert.message || 'Alert'}
                         </p>
                       </div>
                       <span className="text-muted-foreground whitespace-nowrap">
